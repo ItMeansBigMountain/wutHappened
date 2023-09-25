@@ -1,12 +1,19 @@
 import constants
 import requests
 
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin
+
+
 class NewsApi:
     api_urls = [
         f"https://newsapi.org/v2/top-headlines?country=us&apiKey={constants.news_api}&category=business"
     ]
 
-    webscrape_urls = []
+    webscrape_urls = [
+        "https://www.foxnews.com/",
+        "https://www.cnn.com/",
+    ]
 
 
     def __init__(self, api=True, webscrape=True):
@@ -14,7 +21,7 @@ class NewsApi:
         self.webscrape_urls = NewsApi.webscrape_urls
         
         self.api = api
-        self.websrape = webscrape
+        self.webscrape = webscrape
         
         self.api_articles = []
         self.webscrape_articles = []
@@ -36,17 +43,14 @@ class NewsApi:
 
 
 
-
-
-
     def fetch_webscrape(self):
         if self.webscrape == False:
             return
-        from bs4 import BeautifulSoup
-        from urllib.parse import urljoin
 
+        articles = []
         for x in self.webscrape_urls:
             # Check if the content is HTML
+            data = requests.get(x)
             content_type = data.headers.get('Content-Type')
             if 'text/html' not in content_type:
                 print(f"Skipping {x}, not an HTML page.")
@@ -59,9 +63,11 @@ class NewsApi:
             # Extract and store text from the HTML page
             text_data = """"""
             for string in soup.stripped_strings:
-                text_data.append(string)
+                text_data += f"\n{string}"
 
             self.webscrape_articles.append(text_data)
+            articles.append(text_data)
+        return articles
 
             # # collect links from webpage
             # for link in soup.find_all('a', href=True):
@@ -70,14 +76,22 @@ class NewsApi:
             #     self.links.add(full_url)
 
 
+    def clean_webpage(self, website_url):
+        # CHECK IF WEBPAGE IS HTML
+        data = requests.get(website_url)
+        content_type = data.headers.get('Content-Type')
+        if 'text/html' not in content_type:
+            print(f"Skipping {website_url}, not an HTML page.")
+            return None
 
-
-
-
-
-
-
-
+        # INIT SOUP
+        html = data.text
+        soup = BeautifulSoup(html, 'html.parser')
+        # Extract and store text from the HTML page
+        text_data = """"""
+        for string in list(set(soup.stripped_strings))[:-2]:
+            text_data += f"\n\n{string}"
+        return text_data
 
 
 
@@ -92,6 +106,13 @@ class NewsApi:
 
 if __name__ == "__main__":
     news = NewsApi()
-    news_articles = news.fetch_api()
-    for article in news_articles:
+    
+    # # API TEST
+    # news_articles_API = news.fetch_api()
+    # for article in news_articles_API:
+    #     print( article )
+    
+    # WEBSCRAPE TEST
+    news_articles_WEBSCRAPE = news.fetch_webscrape()
+    for article in news_articles_WEBSCRAPE:
         print( article )
